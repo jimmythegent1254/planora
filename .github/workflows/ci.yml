@@ -122,4 +122,4 @@ jobs:
 
       - name: Deploy to Vercel
         working-directory: apps/frontend
-        run: vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
+        run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }} --yes
