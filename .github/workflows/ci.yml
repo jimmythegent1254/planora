@@ -118,3 +118,30 @@ jobs:
       - name: Deploy to Vercel
         working-directory: apps/frontend
         run: pnpm dlx vercel deploy --prod --token ${{ secrets.VERCEL_TOKEN }} --yes
+
+  deploy-backend:
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Prepare pnpm
+        run: corepack prepare pnpm@9.0.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Deploy backend to Railway
+        working-directory: apps/backend
+        run: pnpm dlx @railway/cli up --service backend --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
