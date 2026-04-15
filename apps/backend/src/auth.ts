@@ -1,23 +1,24 @@
 // src/auth.ts
-import { betterAuth } from 'better-auth';
-import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { db } from './db/client';
-import * as schema from './schema/schema';
-import { Resend } from 'resend';
+import { betterAuth } from "better-auth";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { Resend } from "resend";
+import { db } from "./db/client";
+import * as schema from "./schema/schema";
+
 const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
-  baseURL: 'http://localhost:4000',
-  basePath: '/auth',
+  baseURL: "http://localhost:4000",
+  basePath: "/auth",
   secret:
     process.env.BETTER_AUTH_SECRET ||
-    'change-this-in-production-to-a-long-random-string',
+    "change-this-in-production-to-a-long-random-string",
   database: drizzleAdapter(db, {
-    provider: 'pg',
+    provider: "pg",
     schema: { ...schema },
   }),
   advanced: {
-    disableOriginCheck: process.env.NODE_ENV !== 'production', // safe for dev only
+    disableOriginCheck: process.env.NODE_ENV !== "production", // safe for dev only
   },
   emailAndPassword: {
     enabled: true,
@@ -32,9 +33,9 @@ export const auth = betterAuth({
     sendVerificationEmail: async ({ user, url }) => {
       console.log(user, url);
       await resend.emails.send({
-        from: 'onboarding@resend.dev',
+        from: "onboarding@resend.dev",
         to: user.email,
-        subject: 'Verify your email address',
+        subject: "Verify your email address",
         html: `
           <h2>Welcome to Planora, hoe!</h2>
           <p>Click the link below to verify your email:</p>

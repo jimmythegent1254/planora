@@ -9,7 +9,13 @@ import { useForm } from "react-hook-form";
 import * as z from "zod";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -40,30 +46,41 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      const endpoint = isLogin 
+      const endpoint = isLogin
         ? "http://localhost:4000/auth/sign-in/email"
         : "http://localhost:4000/auth/sign-up/email";
 
-      const payload = isLogin 
+      const payload = isLogin
         ? { email: data.email, password: data.password }
         : { email: data.email, password: data.password, name: data.name };
 
       const response = await axios.post(endpoint, payload, {
-        withCredentials: true,        // Important: sends and receives HttpOnly cookies
+        withCredentials: true, // Important: sends and receives HttpOnly cookies
         headers: { "Content-Type": "application/json" },
       });
 
-     
+      console.log(response);
 
       // Redirect to dashboard or home after successful auth
-      router.push("/dashboard");   // change this to your protected route
+      router.push("/dashboard");
+    } catch (error: unknown) {
+      let message = "Something went wrong. Please try again.";
 
-    } catch (error: any) {
-      const message = error.response?.data?.message || 
-                     error.response?.data?.error || 
-                     "Something went wrong. Please try again.";
+      if (typeof error === "object" && error !== null) {
+        const err = error as {
+          response?: {
+            data?: {
+              message?: string;
+              error?: string;
+            };
+          };
+        };
 
-      
+        message =
+          err.response?.data?.message || err.response?.data?.error || message;
+      }
+
+      console.log(message);
     } finally {
       setIsLoading(false);
     }
@@ -77,8 +94,8 @@ export default function AuthPage() {
             {isLogin ? "Welcome back" : "Create an account"}
           </CardTitle>
           <CardDescription>
-            {isLogin 
-              ? "Enter your credentials to sign in" 
+            {isLogin
+              ? "Enter your credentials to sign in"
               : "Enter your details to get started"}
           </CardDescription>
         </CardHeader>
@@ -95,7 +112,9 @@ export default function AuthPage() {
                   {...form.register("name")}
                 />
                 {form.formState.errors.name && (
-                  <p className="text-sm text-red-500">{form.formState.errors.name.message}</p>
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.name.message}
+                  </p>
                 )}
               </div>
             )}
@@ -109,7 +128,9 @@ export default function AuthPage() {
                 {...form.register("email")}
               />
               {form.formState.errors.email && (
-                <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.email.message}
+                </p>
               )}
             </div>
 
@@ -133,7 +154,9 @@ export default function AuthPage() {
                 </Button>
               </div>
               {form.formState.errors.password && (
-                <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.password.message}
+                </p>
               )}
             </div>
 

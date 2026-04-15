@@ -1,8 +1,5 @@
-import { Button } from "@/components/ui/button"
-import AuthPage from "./auth/page"
+import AuthPage from "./auth/page";
 
 export default function Page() {
-  return (
-      <AuthPage />
-  )
+  return <AuthPage />;
 }
