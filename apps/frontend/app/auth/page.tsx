@@ -21,6 +21,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import { toast } from "sonner";
 import * as z from "zod";
 
 const formSchema = z.object({
@@ -80,11 +81,21 @@ export default function AuthPage() {
           };
         };
 
+        console.log(err);
+
         message =
           err.response?.data?.message || err.response?.data?.error || message;
       }
 
-      console.log(message);
+      toast.error(message, {
+        position: "bottom-left",
+        style: {
+          border: "none",
+          background: "#e11d48",
+          color: "white",
+          fontWeight: "light",
+        },
+      });
     } finally {
       setIsLoading(false);
     }
