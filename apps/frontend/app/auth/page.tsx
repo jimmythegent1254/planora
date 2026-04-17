@@ -4,8 +4,8 @@ import heroEvent from "@/assets/hero-event.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { authClient } from "@/lib/auth-client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import axios from "axios";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
@@ -24,22 +24,42 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import * as z from "zod";
 
-const formSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters").optional(),
+const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(8, "Password must be at least 8 characters"),
 });
 
-type FormData = z.infer<typeof formSchema>;
+const signupSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+type SignupFormData = z.infer<typeof signupSchema>;
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+type FormData = LoginFormData | SignupFormData | ForgotPasswordFormData;
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
+  const currentSchema = isForgotPassword
+    ? forgotPasswordSchema
+    : isLogin
+      ? loginSchema
+      : signupSchema;
+
   const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(currentSchema),
     defaultValues: {
       email: "",
       password: "",
@@ -51,40 +71,59 @@ export default function AuthPage() {
     setIsLoading(true);
 
     try {
-      const endpoint = isLogin
-        ? "http://localhost:5000/auth/sign-in/email"
-        : "http://localhost:5000/auth/sign-up/email";
+      if (isForgotPassword) {
+        // Forgot Password Flow
+        const { error } = await authClient.requestPasswordReset({
+          email: (data as ForgotPasswordFormData).email,
+        });
 
-      const payload = isLogin
-        ? { email: data.email, password: data.password }
-        : { email: data.email, password: data.password, name: data.name };
+        if (error) throw error;
 
-      const response = await axios.post(endpoint, payload, {
-        withCredentials: true, // Important: sends and receives HttpOnly cookies
-        headers: { "Content-Type": "application/json" },
-      });
+        toast.success("Password reset link sent! Please check your email.");
+        // Optional: Stay on the page or go to a "check your email" screen
+        // setIsForgotPassword(false); // uncomment if you want to return to login
+      } else if (isLogin) {
+        // Login
+        const { error } = await authClient.signIn.email({
+          email: (data as LoginFormData).email,
+          password: (data as LoginFormData).password,
+          callbackURL: "/dashboard",
+        });
 
-      console.log(response);
+        if (error) throw error;
 
-      // Redirect to dashboard or home after successful auth
-      router.push("/dashboard");
-    } catch (error: unknown) {
+        toast.success("Logged in successfully!");
+        router.push("/dashboard");
+      } else {
+        // Sign Up
+        const name = "name" in data ? (data as SignupFormData).name : undefined;
+
+        const { error } = await authClient.signUp.email({
+          email: (data as SignupFormData).email,
+          password: (data as SignupFormData).password,
+          name,
+        });
+
+        if (error) throw error;
+
+        toast.success(
+          "Account created successfully! Please check your email if verification is required.",
+        );
+        router.push("/dashboard");
+      }
+    } catch (error: any) {
+      console.error(error);
+
       let message = "Something went wrong. Please try again.";
 
-      if (typeof error === "object" && error !== null) {
-        const err = error as {
-          response?: {
-            data?: {
-              message?: string;
-              error?: string;
-            };
-          };
-        };
-
-        console.log(err);
-
-        message =
-          err.response?.data?.message || err.response?.data?.error || message;
+      if (error?.message) {
+        message = error.message;
+      } else if (error?.status === 403) {
+        message = "Please verify your email first.";
+      } else if (error?.status === 401) {
+        message = "Invalid email or password.";
+      } else if (error?.status === 409) {
+        message = "An account with this email already exists.";
       }
 
       toast.error(message, {
@@ -101,6 +140,17 @@ export default function AuthPage() {
     }
   };
 
+  const toggleForgotPassword = () => {
+    setIsForgotPassword(!isForgotPassword);
+    form.reset();
+  };
+
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setIsForgotPassword(false);
+    form.reset();
+  };
+
   return (
     <div className="min-h-screen flex items-center bg-gray-50 m-0">
       <div className="w-[55%] flex justify-center">
@@ -111,24 +161,32 @@ export default function AuthPage() {
             </div>
             <span className="text-lg font-bold">Planora</span>
           </div>
+
           <div className="flex flex-col gap-1">
             <span className="text-2xl font-bold">
-              {isLogin ? "Welcome back" : "Create an account"}
+              {isForgotPassword
+                ? "Forgot your password?"
+                : isLogin
+                  ? "Welcome back"
+                  : "Create an account"}
             </span>
             <div className="text-sm text-slate-500">
-              {isLogin
-                ? "Sign in to manage your events and tickets."
-                : "Start creating and discovering events today."}
+              {isForgotPassword
+                ? "Enter your email and we'll send you a reset link."
+                : isLogin
+                  ? "Sign in to manage your events and tickets."
+                  : "Start creating and discovering events today."}
             </div>
           </div>
 
           <motion.div
-            key={isLogin ? "register" : "login"}
+            key={isForgotPassword ? "forgot" : isLogin ? "login" : "signup"}
             initial={{ opacity: 0, x: -10 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.3 }}
             className="flex flex-col w-full gap-4"
           >
+            {/* Google Button (you can connect it later) */}
             <div>
               <Button className="border border-slate-200 w-full bg-white p-5 cursor-pointer text-slate-700 hover:bg-slate-100 hover:border-slate-200">
                 <Image src="/google.png" alt="Google" width={20} height={20} />
@@ -142,38 +200,13 @@ export default function AuthPage() {
               <div className="h-2 border-b border-slate-200 w-full"></div>
             </div>
 
-            <div>
-              <form
-                onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
-              >
-                {!isLogin && (
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-
-                      <Input
-                        id="name"
-                        type="text"
-                        placeholder="John Doe"
-                        className="py-5 pl-10 rounded-[15px] shadow-sm"
-                        {...form.register("name")}
-                      />
-                    </div>
-                    {form.formState.errors.name && (
-                      <p className="text-sm text-red-500">
-                        {form.formState.errors.name.message}
-                      </p>
-                    )}
-                  </div>
-                )}
-
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Forgot Password Mode */}
+              {isForgotPassword ? (
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-
                     <Input
                       id="email"
                       type="email"
@@ -182,75 +215,155 @@ export default function AuthPage() {
                       {...form.register("email")}
                     />
                   </div>
-
                   {form.formState.errors.email && (
                     <p className="text-sm text-red-500">
                       {form.formState.errors.email.message}
                     </p>
                   )}
                 </div>
+              ) : (
+                <>
+                  {/* Name (Signup only) */}
+                  {!isLogin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Full Name</Label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="name"
+                          type="text"
+                          placeholder="John Doe"
+                          className="py-5 pl-10 rounded-[15px] shadow-sm"
+                          {...form.register("name")}
+                        />
+                      </div>
+                      {form.formState.errors.name && (
+                        <p className="text-sm text-red-500">
+                          {form.formState.errors.name.message}
+                        </p>
+                      )}
+                    </div>
+                  )}
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="••••••••"
-                      className="py-5 pl-10 rounded-[15px] shadow-sm"
-                      {...form.register("password")}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                      onClick={() => setShowPassword(!showPassword)}
-                    >
-                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </Button>
+                  {/* Email */}
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        className="py-5 pl-10 rounded-[15px] shadow-sm"
+                        {...form.register("email")}
+                      />
+                    </div>
+                    {form.formState.errors.email && (
+                      <p className="text-sm text-red-500">
+                        {form.formState.errors.email.message}
+                      </p>
+                    )}
                   </div>
-                  {form.formState.errors.password && (
-                    <p className="text-sm text-red-500">
-                      {form.formState.errors.password.message}
-                    </p>
-                  )}
-                </div>
 
-                <Button
-                  type="submit"
-                  className="w-full p-6 bg-rose-600 mt-2 cursor-pointer hover:bg-rose-500 hover:shadow-md"
-                  disabled={isLoading}
-                >
-                  {isLoading && (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  )}
-                  {isLogin ? "Sign In" : "Create Account"}
-                  <ArrowRight />
-                </Button>
-              </form>
+                  {/* Password */}
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <div className="relative">
+                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        className="py-5 pl-10 rounded-[15px] shadow-sm"
+                        {...form.register("password")}
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </Button>
+                    </div>
+                    {form.formState.errors.password && (
+                      <p className="text-sm text-red-500">
+                        {form.formState.errors.password.message}
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
 
-              <div className="mt-6 text-center text-sm text-slate-800">
-                {isLogin
-                  ? "Don't have an account?"
-                  : "Already have an account?"}{" "}
+              <Button
+                type="submit"
+                className="w-full p-6 bg-rose-600 mt-2 cursor-pointer hover:bg-rose-500 hover:shadow-md"
+                disabled={isLoading}
+              >
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isForgotPassword
+                  ? "Send Reset Link"
+                  : isLogin
+                    ? "Sign In"
+                    : "Create Account"}
+                <ArrowRight />
+              </Button>
+            </form>
+
+            {/* Links */}
+            <div className="mt-4 text-center text-sm text-slate-800 space-y-2">
+              {isForgotPassword ? (
                 <button
                   type="button"
-                  onClick={() => {
-                    setIsLogin(!isLogin);
-                    form.reset();
-                  }}
-                  className="cursor-pointer hover:underline text-rose-600 font-semibold"
+                  onClick={toggleForgotPassword}
+                  className="hover:underline text-rose-600 font-semibold"
                 >
-                  {isLogin ? "Sign up" : "Sign in"}
+                  Back to Sign In
                 </button>
-              </div>
+              ) : isLogin ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={toggleForgotPassword}
+                    className="text-rose-600 hover:underline block"
+                  >
+                    Forgot your password?
+                  </button>
+
+                  <div>
+                    Don't have an account?{" "}
+                    <button
+                      type="button"
+                      onClick={toggleMode}
+                      className="hover:underline text-rose-600 font-semibold"
+                    >
+                      Sign up
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div>
+                  Already have an account?{" "}
+                  <button
+                    type="button"
+                    onClick={toggleMode}
+                    className="hover:underline text-rose-600 font-semibold"
+                  >
+                    Sign in
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         </div>
       </div>
+
+      {/* Right side hero image (unchanged) */}
       <div className="relative h-screen w-[45%] m-0">
         <Image fill className="object-cover" src={heroEvent} alt="Event Hero" />
 

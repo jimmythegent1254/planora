@@ -1,5 +1,5 @@
-import AuthPage from "./auth/page";
+import Dashboard from "./dashboard/page";
 
 export default function Page() {
-  return <AuthPage />;
+  return <Dashboard />;
 }

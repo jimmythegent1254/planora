@@ -9,29 +9,52 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const auth = betterAuth({
   baseURL: "http://localhost:4000",
-  basePath: "/auth",
+  basePath: "/api/auth",
   secret:
     process.env.BETTER_AUTH_SECRET ||
     "change-this-in-production-to-a-long-random-string",
+
   database: drizzleAdapter(db, {
     provider: "pg",
     schema: { ...schema },
   }),
+
   advanced: {
-    disableOriginCheck: process.env.NODE_ENV !== "production", // safe for dev only
+    disableOriginCheck: process.env.NODE_ENV !== "production",
   },
+
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: false,
     minPasswordLength: 8,
     maxPasswordLength: 128,
+    revokeSessionsOnPasswordReset: true,
+    resetPasswordTokenExpiresIn: 3600,
+
+    sendResetPassword: async ({ user, url, token }) => {
+      const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3001";
+      const resetUrl = `${frontendUrl}/reset-password?token=${token}`;
+
+      void resend.emails.send({
+        from: "onboarding@resend.dev",
+        to: user.email,
+        subject: "Reset your password",
+        html: `
+          <p>Click the link below to reset your password:</p>
+          <a href="${resetUrl}">Reset Password</a>
+          <p>This link expires in 1 hour.</p>
+        `,
+      });
+    },
   },
 
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: true,
+
     sendVerificationEmail: async ({ user, url }) => {
       console.log(user, url);
+
       await resend.emails.send({
         from: "onboarding@resend.dev",
         to: user.email,
@@ -48,7 +71,6 @@ export const auth = betterAuth({
     },
   },
 
-  // Optional performance boost (recommended)
   experimental: {
     joins: false,
   },
