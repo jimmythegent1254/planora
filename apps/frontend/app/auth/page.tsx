@@ -1,6 +1,7 @@
 "use client";
 
 import heroEvent from "@/assets/hero-event.jpg";
+import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -9,7 +10,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "framer-motion";
 import {
   ArrowRight,
-  CalendarDays,
   Eye,
   EyeOff,
   KeyRound,
@@ -51,6 +51,7 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const [error, setError] = useState(null);
 
   const currentSchema = isForgotPassword
     ? forgotPasswordSchema
@@ -79,7 +80,9 @@ export default function AuthPage() {
 
         if (error) throw error;
 
-        toast.success("Password reset link sent! Please check your email.");
+        toast.success("Password reset link sent! Please check your email.", {
+          position: "bottom-left",
+        });
         // Optional: Stay on the page or go to a "check your email" screen
         // setIsForgotPassword(false); // uncomment if you want to return to login
       } else if (isLogin) {
@@ -112,8 +115,6 @@ export default function AuthPage() {
         router.push("/dashboard");
       }
     } catch (error: any) {
-      console.error(error);
-
       let message = "Something went wrong. Please try again.";
 
       if (error?.message) {
@@ -126,7 +127,9 @@ export default function AuthPage() {
         message = "An account with this email already exists.";
       }
 
-      toast.error(message, {
+      setError(message);
+
+      /*toast.error(message, {
         position: "bottom-left",
         style: {
           border: "none",
@@ -134,7 +137,7 @@ export default function AuthPage() {
           color: "white",
           fontWeight: "light",
         },
-      });
+      });*/
     } finally {
       setIsLoading(false);
     }
@@ -155,12 +158,7 @@ export default function AuthPage() {
     <div className="min-h-screen flex items-center bg-gray-50 m-0">
       <div className="w-[55%] flex justify-center">
         <div className="w-100 flex flex-col gap-6">
-          <div className="flex items-center gap-2 w-full">
-            <div className="bg-rose-600 text-white rounded-full p-2">
-              <CalendarDays />
-            </div>
-            <span className="text-lg font-bold">Planora</span>
-          </div>
+          <Logo />
 
           <div className="flex flex-col gap-1">
             <span className="text-2xl font-bold">
@@ -313,6 +311,12 @@ export default function AuthPage() {
                     : "Create Account"}
                 <ArrowRight />
               </Button>
+
+              {error && (
+                <span className="text-rose-500 text-center text-sm w-full mt-0">
+                  {error}
+                </span>
+              )}
             </form>
 
             {/* Links */}
@@ -321,21 +325,13 @@ export default function AuthPage() {
                 <button
                   type="button"
                   onClick={toggleForgotPassword}
-                  className="hover:underline text-rose-600 font-semibold"
+                  className="text-sm text-slate-500 hover:text-rose-600 hover:underline"
                 >
                   Back to Sign In
                 </button>
               ) : isLogin ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={toggleForgotPassword}
-                    className="text-rose-600 hover:underline block"
-                  >
-                    Forgot your password?
-                  </button>
-
-                  <div>
+                <div className="flex flex-col align-center gap-2">
+                  <div className="flex items-center justify-center gap-1">
                     Don't have an account?{" "}
                     <button
                       type="button"
@@ -345,7 +341,14 @@ export default function AuthPage() {
                       Sign up
                     </button>
                   </div>
-                </>
+                  <button
+                    type="button"
+                    onClick={toggleForgotPassword}
+                    className="text-sm text-slate-500 hover:text-rose-600 hover:underline"
+                  >
+                    Forgot your password?
+                  </button>
+                </div>
               ) : (
                 <div>
                   Already have an account?{" "}
