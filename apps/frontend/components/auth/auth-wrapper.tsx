@@ -1,12 +1,17 @@
 import heroEvent from "@/assets/hero-event.jpg";
 import { CalendarDays } from "lucide-react";
 import Image from "next/image";
+import { type ReactNode } from "react";
 
-const AuthWrapper = ({ children }) => {
+type AuthWrapperProps = {
+  children: ReactNode;
+};
+
+const AuthWrapper = ({ children }: AuthWrapperProps) => {
   return (
-    <div className="min-h-screen flex items-center bg-gray-50">
-      <div className="w-[55%] flex justify-center">
-        <div className="w-[420px] flex flex-col gap-6">
+    <div className="flex min-h-screen items-center bg-gray-50">
+      <div className="flex w-full justify-center px-6 py-10 lg:w-[55%]">
+        <div className="flex w-full max-w-[420px] flex-col gap-6">
           {/* Logo */}
           <div className="flex items-center gap-2">
             <div className="bg-rose-600 text-white rounded-full p-2">
@@ -19,7 +24,7 @@ const AuthWrapper = ({ children }) => {
         </div>
       </div>
 
-      {/* Right side hero image (same as your auth page) */}
+      {/* Right side hero image */}
       <div className="relative h-screen w-[45%] hidden lg:block">
         <Image
           fill

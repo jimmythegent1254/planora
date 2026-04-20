@@ -65,7 +65,7 @@ const Navbar = () => {
 
         <Button
           disabled={isPending}
-          onClick={!session ? () => router.push("/auth") : handleSignOut}
+          onClick={!session ? () => router.push("/login") : handleSignOut}
           className="bg-transparent w-4/12 text-slate-900 font-semibold hover:bg-slate-100"
         >
           {isPending ? (
