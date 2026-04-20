@@ -4,7 +4,7 @@ import { authClient } from "@/lib/auth-client";
 import { Bell, Command, Plus, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import Logo from "./Logo";
+import Logo from "./logo";
 import { Button } from "./ui/button";
 
 const Navbar = () => {
@@ -14,11 +14,10 @@ const Navbar = () => {
   const handleSignOut = async () => {
     try {
       await authClient.signOut({
-        // Optional: redirect after sign out
         fetchOptions: {
           onSuccess: () => {
             toast.success("Signed out successfully");
-            // router.refresh();            // if you want to refresh current page instead
+            router.refresh();
           },
         },
       });
@@ -50,7 +49,7 @@ const Navbar = () => {
           <Search />
           <span className="font-light text-[13px]">Search...</span>
           <div className="flex border border-slate-400 text-slate-500 bg-white rounded-sm text-xs items-center px-1 py-0.5">
-            <Command className="!w-3 !h-3" />
+            <Command className="w-3! h-3!" />
             <span className="text-[10px]">K</span>
           </div>
         </Button>
@@ -64,21 +63,19 @@ const Navbar = () => {
           <span className="text-[13px] font-semibold">Create Event</span>
         </Button>
 
-        {!session ? (
-          <Button
-            onClick={() => router.push("/auth")}
-            className="bg-transparent text-slate-900 font-semibold hover:bg-slate-100 cursor-pointer"
-          >
-            Sign In
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSignOut}
-            className="bg-transparent text-slate-900 font-semibold hover:bg-slate-100 cursor-pointer"
-          >
-            Sign Out
-          </Button>
-        )}
+        <Button
+          disabled={isPending}
+          onClick={!session ? () => router.push("/auth") : handleSignOut}
+          className="bg-transparent w-4/12 text-slate-900 font-semibold hover:bg-slate-100"
+        >
+          {isPending ? (
+            <span className="opacity-50">Loading...</span>
+          ) : session ? (
+            "Sign Out"
+          ) : (
+            "Sign In"
+          )}
+        </Button>
       </div>
     </div>
   );

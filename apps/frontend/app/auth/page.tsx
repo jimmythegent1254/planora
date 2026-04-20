@@ -1,7 +1,6 @@
 "use client";
 
-import heroEvent from "@/assets/hero-event.jpg";
-import Logo from "@/components/Logo";
+import AuthWrapper from "@/components/auth/auth-wrapper";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -155,236 +154,206 @@ export default function AuthPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center bg-gray-50 m-0">
-      <div className="w-[55%] flex justify-center">
-        <div className="w-100 flex flex-col gap-6">
-          <Logo />
+    <AuthWrapper>
+      <div className="flex flex-col gap-1">
+        <span className="text-2xl font-bold">
+          {isForgotPassword
+            ? "Forgot your password?"
+            : isLogin
+              ? "Welcome back"
+              : "Create an account"}
+        </span>
+        <div className="text-sm text-slate-500">
+          {isForgotPassword
+            ? "Enter your email and we'll send you a reset link."
+            : isLogin
+              ? "Sign in to manage your events and tickets."
+              : "Start creating and discovering events today."}
+        </div>
+      </div>
 
-          <div className="flex flex-col gap-1">
-            <span className="text-2xl font-bold">
-              {isForgotPassword
-                ? "Forgot your password?"
-                : isLogin
-                  ? "Welcome back"
-                  : "Create an account"}
-            </span>
-            <div className="text-sm text-slate-500">
-              {isForgotPassword
-                ? "Enter your email and we'll send you a reset link."
-                : isLogin
-                  ? "Sign in to manage your events and tickets."
-                  : "Start creating and discovering events today."}
+      <motion.div
+        key={isForgotPassword ? "forgot" : isLogin ? "login" : "signup"}
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.3 }}
+        className="flex flex-col w-full gap-4"
+      >
+        {/* Google Button (you can connect it later) */}
+        <div>
+          <Button className="border border-slate-200 w-full bg-white p-5 cursor-pointer text-slate-700 hover:bg-slate-100 hover:border-slate-200">
+            <Image src="/google.png" alt="Google" width={20} height={20} />
+            <span className="font-semibold ml-1">Continue with Google</span>
+          </Button>
+        </div>
+
+        <div className="flex items-start w-full gap-4">
+          <div className="h-2 border-b border-slate-200 w-full"></div>
+          <span className="text-xs text-slate-500">or</span>
+          <div className="h-2 border-b border-slate-200 w-full"></div>
+        </div>
+
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {/* Forgot Password Mode */}
+          {isForgotPassword ? (
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="py-5 pl-10 rounded-[15px] shadow-sm"
+                  {...form.register("email")}
+                />
+              </div>
+              {form.formState.errors.email && (
+                <p className="text-sm text-red-500">
+                  {form.formState.errors.email.message}
+                </p>
+              )}
             </div>
-          </div>
-
-          <motion.div
-            key={isForgotPassword ? "forgot" : isLogin ? "login" : "signup"}
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3 }}
-            className="flex flex-col w-full gap-4"
-          >
-            {/* Google Button (you can connect it later) */}
-            <div>
-              <Button className="border border-slate-200 w-full bg-white p-5 cursor-pointer text-slate-700 hover:bg-slate-100 hover:border-slate-200">
-                <Image src="/google.png" alt="Google" width={20} height={20} />
-                <span className="font-semibold ml-1">Continue with Google</span>
-              </Button>
-            </div>
-
-            <div className="flex items-start w-full gap-4">
-              <div className="h-2 border-b border-slate-200 w-full"></div>
-              <span className="text-xs text-slate-500">or</span>
-              <div className="h-2 border-b border-slate-200 w-full"></div>
-            </div>
-
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Forgot Password Mode */}
-              {isForgotPassword ? (
+          ) : (
+            <>
+              {/* Name (Signup only) */}
+              {!isLogin && (
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="name">Full Name</Label>
                   <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                     <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
+                      id="name"
+                      type="text"
+                      placeholder="John Doe"
                       className="py-5 pl-10 rounded-[15px] shadow-sm"
-                      {...form.register("email")}
+                      {...form.register("name")}
                     />
                   </div>
-                  {form.formState.errors.email && (
+                  {form.formState.errors.name && (
                     <p className="text-sm text-red-500">
-                      {form.formState.errors.email.message}
+                      {form.formState.errors.name.message}
                     </p>
                   )}
                 </div>
-              ) : (
-                <>
-                  {/* Name (Signup only) */}
-                  {!isLogin && (
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <div className="relative">
-                        <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <Input
-                          id="name"
-                          type="text"
-                          placeholder="John Doe"
-                          className="py-5 pl-10 rounded-[15px] shadow-sm"
-                          {...form.register("name")}
-                        />
-                      </div>
-                      {form.formState.errors.name && (
-                        <p className="text-sm text-red-500">
-                          {form.formState.errors.name.message}
-                        </p>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        className="py-5 pl-10 rounded-[15px] shadow-sm"
-                        {...form.register("email")}
-                      />
-                    </div>
-                    {form.formState.errors.email && (
-                      <p className="text-sm text-red-500">
-                        {form.formState.errors.email.message}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Password */}
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <div className="relative">
-                      <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        placeholder="••••••••"
-                        className="py-5 pl-10 rounded-[15px] shadow-sm"
-                        {...form.register("password")}
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                        onClick={() => setShowPassword(!showPassword)}
-                      >
-                        {showPassword ? (
-                          <EyeOff size={18} />
-                        ) : (
-                          <Eye size={18} />
-                        )}
-                      </Button>
-                    </div>
-                    {form.formState.errors.password && (
-                      <p className="text-sm text-red-500">
-                        {form.formState.errors.password.message}
-                      </p>
-                    )}
-                  </div>
-                </>
               )}
 
-              <Button
-                type="submit"
-                className="w-full p-6 bg-rose-600 mt-2 cursor-pointer hover:bg-rose-500 hover:shadow-md"
-                disabled={isLoading}
-              >
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {isForgotPassword
-                  ? "Send Reset Link"
-                  : isLogin
-                    ? "Sign In"
-                    : "Create Account"}
-                <ArrowRight />
-              </Button>
+              {/* Email */}
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    className="py-5 pl-10 rounded-[15px] shadow-sm"
+                    {...form.register("email")}
+                  />
+                </div>
+                {form.formState.errors.email && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.email.message}
+                  </p>
+                )}
+              </div>
 
-              {error && (
-                <span className="text-rose-500 text-center text-sm w-full mt-0">
-                  {error}
-                </span>
-              )}
-            </form>
+              {/* Password */}
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    className="py-5 pl-10 rounded-[15px] shadow-sm"
+                    {...form.register("password")}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </Button>
+                </div>
+                {form.formState.errors.password && (
+                  <p className="text-sm text-red-500">
+                    {form.formState.errors.password.message}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
 
-            {/* Links */}
-            <div className="mt-4 text-center text-sm text-slate-800 space-y-2">
-              {isForgotPassword ? (
+          <Button
+            type="submit"
+            className="w-full p-6 bg-rose-600 mt-2 cursor-pointer hover:bg-rose-500 hover:shadow-md"
+            disabled={isLoading}
+          >
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {isForgotPassword
+              ? "Send Reset Link"
+              : isLogin
+                ? "Sign In"
+                : "Create Account"}
+            <ArrowRight />
+          </Button>
+
+          {error && (
+            <span className="text-rose-500 text-center text-sm w-full mt-0">
+              {error}
+            </span>
+          )}
+        </form>
+
+        {/* Links */}
+        <div className="mt-4 text-center text-sm text-slate-800 space-y-2">
+          {isForgotPassword ? (
+            <button
+              type="button"
+              onClick={toggleForgotPassword}
+              className="text-sm text-slate-500 hover:text-rose-600 hover:underline"
+            >
+              Back to Sign In
+            </button>
+          ) : isLogin ? (
+            <div className="flex flex-col align-center gap-2">
+              <div className="flex items-center justify-center gap-1">
+                Don't have an account?{" "}
                 <button
                   type="button"
-                  onClick={toggleForgotPassword}
-                  className="text-sm text-slate-500 hover:text-rose-600 hover:underline"
+                  onClick={toggleMode}
+                  className="hover:underline text-rose-600 font-semibold"
                 >
-                  Back to Sign In
+                  Sign up
                 </button>
-              ) : isLogin ? (
-                <div className="flex flex-col align-center gap-2">
-                  <div className="flex items-center justify-center gap-1">
-                    Don't have an account?{" "}
-                    <button
-                      type="button"
-                      onClick={toggleMode}
-                      className="hover:underline text-rose-600 font-semibold"
-                    >
-                      Sign up
-                    </button>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={toggleForgotPassword}
-                    className="text-sm text-slate-500 hover:text-rose-600 hover:underline"
-                  >
-                    Forgot your password?
-                  </button>
-                </div>
-              ) : (
-                <div>
-                  Already have an account?{" "}
-                  <button
-                    type="button"
-                    onClick={toggleMode}
-                    className="hover:underline text-rose-600 font-semibold"
-                  >
-                    Sign in
-                  </button>
-                </div>
-              )}
+              </div>
+              <button
+                type="button"
+                onClick={toggleForgotPassword}
+                className="text-sm text-slate-500 hover:text-rose-600 hover:underline"
+              >
+                Forgot your password?
+              </button>
             </div>
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Right side hero image (unchanged) */}
-      <div className="relative h-screen w-[45%] m-0">
-        <Image fill className="object-cover" src={heroEvent} alt="Event Hero" />
-
-        <div className="absolute bottom-9 left-1/2 -translate-x-1/2 z-20 bg-stone-100 w-11/12 rounded-md p-5">
-          <span className="font-bold text-slate-900">
-            "Eventify made managing our 5,000-person conference effortless."
-          </span>
-          <div className="flex items-center gap-2 mt-2">
-            <div className="h-10 w-10 rounded-full bg-slate-300"></div>
-            <div className="flex flex-col">
-              <h1 className="text-sm font-bold">Sarah Chen</h1>
-              <span className="text-xs text-slate-500">
-                Head of Events, TechCorp
-              </span>
+          ) : (
+            <div>
+              Already have an account?{" "}
+              <button
+                type="button"
+                onClick={toggleMode}
+                className="hover:underline text-rose-600 font-semibold"
+              >
+                Sign in
+              </button>
             </div>
-          </div>
+          )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </AuthWrapper>
   );
 }
