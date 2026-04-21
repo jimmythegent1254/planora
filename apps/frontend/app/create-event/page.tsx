@@ -43,7 +43,8 @@ import {
   Upload,
   Video,
 } from "lucide-react";
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useState, type ReactNode } from "react";
+import type { Control, FieldPath, UseFormReturn } from "react-hook-form";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 
@@ -116,6 +117,496 @@ const createEventSchema = z
   });
 
 type CreateEventFormData = z.infer<typeof createEventSchema>;
+type CreateEventFieldName = FieldPath<CreateEventFormData>;
+type StringFieldName = Exclude<CreateEventFieldName, "isOnline">;
+
+const CATEGORY_OPTIONS = [
+  "Technology",
+  "Music",
+  "Food & Drink",
+  "Business",
+  "Wellness",
+  "Arts & Culture",
+  "Sports",
+] as const;
+
+const PLATFORM_OPTIONS = [
+  "Zoom",
+  "Google Meet",
+  "Microsoft Teams",
+  "YouTube Live",
+  "Twitch",
+  "Custom / Other",
+] as const;
+
+function TwoColumnGrid({ children }: { children: ReactNode }) {
+  return <div className="grid gap-4 sm:grid-cols-2">{children}</div>;
+}
+
+function ThreeColumnGrid({ children }: { children: ReactNode }) {
+  return <div className="grid gap-3 sm:grid-cols-3">{children}</div>;
+}
+
+type BaseFieldProps = {
+  control: Control<CreateEventFormData>;
+  name: StringFieldName;
+  label: string;
+  className?: string;
+  labelClassName?: string;
+};
+
+function TextField({
+  control,
+  name,
+  label,
+  placeholder,
+  type = "text",
+  className,
+  labelClassName,
+  inputClassName = "h-11 rounded-xl",
+}: BaseFieldProps & {
+  placeholder?: string;
+  type?: React.HTMLInputTypeAttribute;
+  inputClassName?: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <FormLabel className={labelClassName}>{label}</FormLabel>
+          <FormControl>
+            <Input type={type} placeholder={placeholder} className={inputClassName} {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+function TextareaField({
+  control,
+  name,
+  label,
+  placeholder,
+  className,
+  inputClassName = "min-h-32 rounded-xl",
+}: BaseFieldProps & {
+  placeholder?: string;
+  inputClassName?: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <Textarea placeholder={placeholder} className={inputClassName} {...field} />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+function SelectField({
+  control,
+  name,
+  label,
+  options,
+  placeholder,
+  className,
+  defaultValue,
+}: BaseFieldProps & {
+  options: readonly string[];
+  placeholder?: string;
+  defaultValue?: string;
+}) {
+  return (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className={className}>
+          <FormLabel>{label}</FormLabel>
+          <Select
+            value={(field.value as string | undefined) || defaultValue}
+            onValueChange={field.onChange}
+          >
+            <FormControl>
+              <SelectTrigger className="h-11 w-full rounded-xl">
+                <SelectValue placeholder={placeholder} />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              {options.map((option) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
+}
+
+function TicketTypeForm({
+  control,
+  namePrefix,
+  title,
+}: {
+  control: Control<CreateEventFormData>;
+  namePrefix: "general" | "vip";
+  title: string;
+}) {
+  return (
+    <div className="rounded-xl border p-4 space-y-3">
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-medium text-card-foreground">{title}</span>
+        <Button variant="ghost" size="icon" className="h-7 w-7 cursor-pointer text-destructive">
+          <Trash2 className="h-3.5 w-3.5" />
+        </Button>
+      </div>
+      <ThreeColumnGrid>
+        <TextField
+          control={control}
+          name={`${namePrefix}Price` as StringFieldName}
+          label="Price"
+          placeholder="$0.00"
+          className="space-y-1"
+          labelClassName="text-xs"
+          inputClassName="h-9 rounded-lg text-sm"
+        />
+        <TextField
+          control={control}
+          name={`${namePrefix}Quantity` as StringFieldName}
+          label="Quantity"
+          placeholder="Unlimited"
+          className="space-y-1"
+          labelClassName="text-xs"
+          inputClassName="h-9 rounded-lg text-sm"
+        />
+        <TextField
+          control={control}
+          name={`${namePrefix}SalesEnd` as StringFieldName}
+          label="Sales End"
+          type="date"
+          className="space-y-1"
+          labelClassName="text-xs"
+          inputClassName="h-9 rounded-lg text-sm"
+        />
+      </ThreeColumnGrid>
+    </div>
+  );
+}
+
+function BasicInformationSection({
+  form,
+  visibility,
+}: {
+  form: UseFormReturn<CreateEventFormData>;
+  visibility: CreateEventFormData["visibility"];
+}) {
+  return (
+    <Card className="shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Type className="h-4 w-4 text-primary" />
+          Basic Information
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <TextField
+          control={form.control}
+          name="title"
+          label="Event Title"
+          placeholder="Give your event a clear, catchy title"
+        />
+        <TextareaField
+          control={form.control}
+          name="description"
+          label="Description"
+          placeholder="Describe what attendees can expect..."
+        />
+        <TwoColumnGrid>
+          <SelectField
+            control={form.control}
+            name="category"
+            label="Category"
+            options={CATEGORY_OPTIONS}
+            placeholder="Select category"
+          />
+          <FormField
+            control={form.control}
+            name="visibility"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Visibility</FormLabel>
+                <FormControl>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => field.onChange("public")}
+                      className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium ${
+                        visibility === "public"
+                          ? "bg-rose-500 text-white hover:bg-rose-600"
+                          : "bg-transparent border border-slate-300 text-slate-900 hover:bg-rose-50"
+                      }`}
+                    >
+                      <Globe className="h-4 w-4" /> Public
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={() => field.onChange("private")}
+                      className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium ${
+                        visibility === "private"
+                          ? "bg-rose-500 text-white hover:bg-rose-600"
+                          : "bg-transparent border border-slate-300 text-slate-900 hover:bg-rose-50"
+                      }`}
+                    >
+                      <Lock className="h-4 w-4" /> Private
+                    </Button>
+                  </div>
+                </FormControl>
+                <div className="pt-1">
+                  <Badge variant="secondary" className="capitalize">
+                    {visibility}
+                  </Badge>
+                </div>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </TwoColumnGrid>
+      </CardContent>
+    </Card>
+  );
+}
+
+function DateAndLocationSection({
+  form,
+  isOnline,
+}: {
+  form: UseFormReturn<CreateEventFormData>;
+  isOnline: boolean;
+}) {
+  return (
+    <Card className="shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CalendarDays className="h-4 w-4 text-primary" />
+          Date & Location
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <TwoColumnGrid>
+          <TextField
+            control={form.control}
+            name="startDateTime"
+            label="Start Date & Time"
+            type="datetime-local"
+          />
+          <TextField
+            control={form.control}
+            name="endDateTime"
+            label="End Date & Time"
+            type="datetime-local"
+          />
+        </TwoColumnGrid>
+
+        <FormField
+          control={form.control}
+          name="isOnline"
+          render={({ field }) => (
+            <FormItem className="flex items-center justify-between rounded-xl border bg-secondary/30 px-4 py-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                  <Video className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <FormLabel
+                    htmlFor="online"
+                    className="cursor-pointer text-sm font-medium text-foreground"
+                  >
+                    Online event
+                  </FormLabel>
+                  <FormDescription>
+                    Host this event virtually instead of in-person.
+                  </FormDescription>
+                </div>
+              </div>
+              <FormControl>
+                <Switch
+                  id="online"
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
+
+        <Separator />
+
+        {!isOnline ? (
+          <FormField
+            control={form.control}
+            name="location"
+            render={() => (
+              <FormItem>
+                <Suspense
+                  fallback={
+                    <div className="space-y-1.5">
+                      <FormLabel>Location</FormLabel>
+                      <div className="relative">
+                        <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="Search for a venue or enter address"
+                          className="h-11 rounded-xl pl-10"
+                        />
+                      </div>
+                      <div className="flex h-[320px] items-center justify-center rounded-xl border bg-secondary/30">
+                        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    </div>
+                  }
+                >
+                  <LocationPicker
+                    value={form.watch("location") ?? ""}
+                    onChange={(addr) =>
+                      form.setValue("location", addr, {
+                        shouldValidate: true,
+                      })
+                    }
+                  />
+                </Suspense>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        ) : (
+          <div className="space-y-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5">
+            <div className="flex items-center gap-2">
+              <Video className="h-4 w-4 text-primary" />
+              <h3 className="text-sm font-semibold text-foreground">
+                Virtual Event Details
+              </h3>
+            </div>
+
+            <SelectField
+              control={form.control}
+              name="platform"
+              label="Platform"
+              options={PLATFORM_OPTIONS}
+              defaultValue="Zoom"
+              placeholder="Select platform"
+            />
+
+            <FormField
+              control={form.control}
+              name="eventLink"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Event Link</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="url"
+                        placeholder="https://zoom.us/j/123456789"
+                        className="h-11 rounded-xl pl-10"
+                        {...field}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Attendees will receive this link after registering.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <TwoColumnGrid>
+              <TextField
+                control={form.control}
+                name="meetingId"
+                label="Meeting ID (optional)"
+                placeholder="123 456 7890"
+              />
+              <FormField
+                control={form.control}
+                name="passcode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Passcode (optional)</FormLabel>
+                    <FormControl>
+                      <div className="relative">
+                        <Key className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          placeholder="••••••"
+                          className="h-11 rounded-xl pl-10"
+                          {...field}
+                        />
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </TwoColumnGrid>
+
+            <TextareaField
+              control={form.control}
+              name="accessInstructions"
+              label="Access Instructions (optional)"
+              placeholder="Any extra info attendees need to join (waiting room, dial-in, dress code, etc.)"
+              inputClassName="min-h-20 rounded-xl"
+            />
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function TicketsSection({ form }: { form: UseFormReturn<CreateEventFormData> }) {
+  return (
+    <Card className="shadow-card">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <DollarSign className="h-4 w-4 text-primary" />
+          Tickets
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <TicketTypeForm
+          control={form.control}
+          namePrefix="general"
+          title="General Admission"
+        />
+        <TicketTypeForm control={form.control} namePrefix="vip" title="VIP Pass" />
+
+        <Button
+          variant="outline"
+          className="w-full cursor-pointer gap-1.5"
+          type="button"
+        >
+          <Plus className="h-4 w-4" />
+          Add Ticket Type
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function CreateEventPage() {
   const [coverImageName, setCoverImageName] = useState<string | null>(null);
@@ -236,544 +727,9 @@ export default function CreateEventPage() {
               </CardContent>
             </Card>
 
-            {/* Basic Info */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Type className="h-4 w-4 text-primary" />
-                  Basic Information
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="title"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Event Title</FormLabel>
-                      <FormControl>
-                        <Input
-                          placeholder="Give your event a clear, catchy title"
-                          className="h-11 rounded-xl"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea
-                          placeholder="Describe what attendees can expect..."
-                          className="min-h-32 rounded-xl"
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="category"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Category</FormLabel>
-
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger className="w-full">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                          </FormControl>
-
-                          <SelectContent>
-                            <SelectItem value="Technology">
-                              Technology
-                            </SelectItem>
-                            <SelectItem value="Music">Music</SelectItem>
-                            <SelectItem value="Food & Drink">
-                              Food & Drink
-                            </SelectItem>
-                            <SelectItem value="Business">Business</SelectItem>
-                            <SelectItem value="Wellness">Wellness</SelectItem>
-                            <SelectItem value="Arts & Culture">
-                              Arts & Culture
-                            </SelectItem>
-                            <SelectItem value="Sports">Sports</SelectItem>
-                          </SelectContent>
-                        </Select>
-
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="visibility"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Visibility</FormLabel>
-                        <FormControl>
-                          <div className="flex gap-2">
-                            <Button
-                              type="button"
-                              onClick={() => field.onChange("public")}
-                              className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium ${
-                                visibility === "public"
-                                  ? "bg-rose-500 text-white hover:bg-rose-600"
-                                  : "bg-transparent border border-slate-300 text-slate-900 hover:bg-rose-50"
-                              }`}
-                            >
-                              <Globe className="h-4 w-4" /> Public
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={() => field.onChange("private")}
-                              className={`flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-xl p-3 text-sm font-medium ${
-                                visibility === "private"
-                                  ? "bg-rose-500 text-white hover:bg-rose-600"
-                                  : "bg-transparent border border-slate-300 text-slate-900 hover:bg-rose-50"
-                              }`}
-                            >
-                              <Lock className="h-4 w-4" /> Private
-                            </Button>
-                          </div>
-                        </FormControl>
-                        <div className="pt-1">
-                          <Badge variant="secondary" className="capitalize">
-                            {visibility}
-                          </Badge>
-                        </div>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Date & Location */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CalendarDays className="h-4 w-4 text-primary" />
-                  Date & Location
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <FormField
-                    control={form.control}
-                    name="startDateTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Start Date & Time</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="datetime-local"
-                            className="h-11 rounded-xl"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="endDateTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>End Date & Time</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="datetime-local"
-                            className="h-11 rounded-xl"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="isOnline"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between rounded-xl border bg-secondary/30 px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
-                          <Video className="h-4 w-4 text-primary" />
-                        </div>
-                        <div>
-                          <FormLabel
-                            htmlFor="online"
-                            className="cursor-pointer text-sm font-medium text-foreground"
-                          >
-                            Online event
-                          </FormLabel>
-                          <FormDescription>
-                            Host this event virtually instead of in-person.
-                          </FormDescription>
-                        </div>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          id="online"
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <Separator />
-
-                {!isOnline ? (
-                  <FormField
-                    control={form.control}
-                    name="location"
-                    render={() => (
-                      <FormItem>
-                        <Suspense
-                          fallback={
-                            <div className="space-y-1.5">
-                              <FormLabel>Location</FormLabel>
-                              <div className="relative">
-                                <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                  placeholder="Search for a venue or enter address"
-                                  className="h-11 rounded-xl pl-10"
-                                />
-                              </div>
-                              <div className="flex h-[320px] items-center justify-center rounded-xl border bg-secondary/30">
-                                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-                              </div>
-                            </div>
-                          }
-                        >
-                          <LocationPicker
-                            value={form.watch("location") ?? ""}
-                            onChange={(addr) =>
-                              form.setValue("location", addr, {
-                                shouldValidate: true,
-                              })
-                            }
-                          />
-                        </Suspense>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  <div className="space-y-4 rounded-xl border-2 border-dashed border-primary/30 bg-primary/5 p-5">
-                    <div className="flex items-center gap-2">
-                      <Video className="h-4 w-4 text-primary" />
-                      <h3 className="text-sm font-semibold text-foreground">
-                        Virtual Event Details
-                      </h3>
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="platform"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Platform</FormLabel>
-                          <Select
-                            value={field.value ?? "Zoom"}
-                            onValueChange={field.onChange}
-                          >
-                            <FormControl>
-                              <SelectTrigger className="h-11 w-full rounded-xl">
-                                <SelectValue placeholder="Select platform" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              <SelectItem value="Zoom">Zoom</SelectItem>
-                              <SelectItem value="Google Meet">
-                                Google Meet
-                              </SelectItem>
-                              <SelectItem value="Microsoft Teams">
-                                Microsoft Teams
-                              </SelectItem>
-                              <SelectItem value="YouTube Live">
-                                YouTube Live
-                              </SelectItem>
-                              <SelectItem value="Twitch">Twitch</SelectItem>
-                              <SelectItem value="Custom / Other">
-                                Custom / Other
-                              </SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="eventLink"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Event Link</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <Link2 className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                              <Input
-                                type="url"
-                                placeholder="https://zoom.us/j/123456789"
-                                className="h-11 rounded-xl pl-10"
-                                {...field}
-                              />
-                            </div>
-                          </FormControl>
-                          <FormDescription>
-                            Attendees will receive this link after registering.
-                          </FormDescription>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <div className="grid gap-4 sm:grid-cols-2">
-                      <FormField
-                        control={form.control}
-                        name="meetingId"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Meeting ID (optional)</FormLabel>
-                            <FormControl>
-                              <Input
-                                placeholder="123 456 7890"
-                                className="h-11 rounded-xl"
-                                {...field}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="passcode"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Passcode (optional)</FormLabel>
-                            <FormControl>
-                              <div className="relative">
-                                <Key className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                                <Input
-                                  placeholder="••••••"
-                                  className="h-11 rounded-xl pl-10"
-                                  {...field}
-                                />
-                              </div>
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <FormField
-                      control={form.control}
-                      name="accessInstructions"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Access Instructions (optional)</FormLabel>
-                          <FormControl>
-                            <Textarea
-                              placeholder="Any extra info attendees need to join (waiting room, dial-in, dress code, etc.)"
-                              className="min-h-20 rounded-xl"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Tickets */}
-            <Card className="shadow-card">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-4 w-4 text-primary" />
-                  Tickets
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {/* Ticket type 1 */}
-                <div className="rounded-xl border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-card-foreground">
-                      General Admission
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 cursor-pointer text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <FormField
-                      control={form.control}
-                      name="generalPrice"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Price</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="$0.00"
-                              className="h-9 rounded-lg text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="generalQuantity"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Quantity</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Unlimited"
-                              className="h-9 rounded-lg text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="generalSalesEnd"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Sales End</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="date"
-                              className="h-9 rounded-lg text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                {/* Ticket type 2 */}
-                <div className="rounded-xl border p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-card-foreground">
-                      VIP Pass
-                    </span>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 cursor-pointer text-destructive"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <FormField
-                      control={form.control}
-                      name="vipPrice"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Price</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="$0.00"
-                              className="h-9 rounded-lg text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="vipQuantity"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Quantity</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Unlimited"
-                              className="h-9 rounded-lg text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name="vipSalesEnd"
-                      render={({ field }) => (
-                        <FormItem className="space-y-1">
-                          <FormLabel className="text-xs">Sales End</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="date"
-                              className="h-9 rounded-lg text-sm"
-                              {...field}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  variant="outline"
-                  className="w-full cursor-pointer gap-1.5"
-                  type="button"
-                >
-                  <Plus className="h-4 w-4" />
-                  Add Ticket Type
-                </Button>
-              </CardContent>
-            </Card>
+            <BasicInformationSection form={form} visibility={visibility} />
+            <DateAndLocationSection form={form} isOnline={isOnline} />
+            <TicketsSection form={form} />
 
             {/* Actions */}
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
