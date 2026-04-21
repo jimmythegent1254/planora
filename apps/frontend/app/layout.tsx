@@ -1,5 +1,6 @@
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Open_Sans } from "next/font/google";
 import "./globals.css";
 
@@ -15,7 +16,11 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning className={font.className}>
       <body>
-        <ThemeProvider>{children}</ThemeProvider>
+        <ThemeProvider>
+          <TooltipProvider>
+            <div className="pt-20">{children}</div>
+          </TooltipProvider>
+        </ThemeProvider>
         <Toaster />
       </body>
     </html>
